@@ -86,7 +86,9 @@ ageIndex_Train = random.choices(ageIndex, k=n_samples)
 ageIndex_Test = []
 Ratings = []
 
-if True : 
+do_Task = False 
+
+if do_Task : 
     for x in ageIndex_Train : 
         image = plt.imread(f'./UTKFaces/Faces/{x}.jpg')
         plt.imshow(image)
@@ -95,7 +97,7 @@ if True :
         Ratings.append((x,rating))
     print('--- Rating task done ! ----')
 
-    workbook = xlsxwriter.Workbook('ratings.xlsx')
+    workbook = xlsxwriter.Workbook('python_ratings.xlsx')
     worksheet = workbook.add_worksheet()
     row = 0; col = 0;
     # Write on the file 
