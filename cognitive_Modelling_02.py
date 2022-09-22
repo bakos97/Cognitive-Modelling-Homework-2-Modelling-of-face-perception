@@ -73,7 +73,6 @@ for i,x in enumerate(ageLabels) :
 
 # We convert the pictures of those guys 
 print(f'There are {len(ageIndex) } who are 25')
-#%% #
 
 ###----------------------------------
 #        3. Run the experiment
@@ -111,6 +110,16 @@ if do_Task :
 ###----------------------------------
 #        4. Data pre-processing
 ###----------------------------------
+
+import pandas as pd
+
+filepath = './our_Ratings.xlsx'
+# Import the excel file
+df = pd.read_excel (filepath)
+# Normalized the Ratings
+df['Normalized_Rating'] = (df['Rating']-df['Rating'].mean())/df['Rating'].std()
+# Histogram of Normalized data
+df.hist(column = 'Normalized_Rating', bins = 10)
 
 ###----------------------------------
 #        5. PCA Decompostion
