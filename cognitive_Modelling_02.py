@@ -28,7 +28,7 @@ from sklearn.metrics import confusion_matrix
 #           Import Data 
 ###----------------------------------
 
-file = open('UTKFaces\labels.csv')
+file = open('./UTKFaces/labels.csv')
 csvreader = csv.reader(file)
 labels = []
 for row in csvreader : 
@@ -36,26 +36,45 @@ for row in csvreader :
 labels = np.array(labels).astype(int)
 file.close()
 
-genderLabels = labels[:,0]
-
+ageLabels = labels[:,0]
+genderLabels = labels[:,1]
+# raceLabels = labels[:,2]
 
 ###----------------------------------
 #           Useful Function
 ###----------------------------------
 
 def conversionGray() :
-    print(f'    Loading {n_picture} images in Gray')
+    print(f'---------- Loading {n_picture} images in Gray --------- ')
     listGray = []
     start = time.time()
     print('Loading data - Beginning : ', datetime.now())
-    for i in range (n_picture) :
-        listGray.append(rgb2gray(plt.imread(f'./UTKFaces/Faces/{i}.jpg')).reshape(1,-1)[0])
+    for i,x in enumerate(ageIndex) :
+        if (i < n_picture) :
+            listGray.append(rgb2gray(plt.imread(f'./UTKFaces/Faces/{i}.jpg')).reshape(1,-1)[0])
     print('Loading data - End Time : ', datetime.now())
     print(f'       Total time : {round(time.time()-start,2)}s')
     return np.array(listGray)
 
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
+
+###----------------------------------
+#           Main
+###----------------------------------
+
+#%% #
+
+# We choose the people between 20 - 30 yo
+ageIndex = []
+
+for i,x in enumerate(ageLabels) : 
+    if ( x > 19 and x < 31 ) : 
+        ageIndex.append(i)
+
+# We convert the pictures of those guys 
+n_picture = len(ageIndex)   # Length of the dataset we used
+print(f'There are {n_picture} of people between 20 and 30 y/o')
 
 ###----------------------------------
 #           Main
