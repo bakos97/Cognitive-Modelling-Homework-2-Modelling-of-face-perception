@@ -28,7 +28,7 @@ from sklearn.metrics import confusion_matrix
 #           Import Data 
 ###----------------------------------
 
-file = open('./data/labels.csv')
+file = open('UTKFaces\labels.csv')
 csvreader = csv.reader(file)
 labels = []
 for row in csvreader : 
@@ -36,9 +36,8 @@ for row in csvreader :
 labels = np.array(labels).astype(int)
 file.close()
 
-ageLabels = labels[:,0]
-genderLabels = labels[:,1]
-raceLabels = labels[:,2]
+genderLabels = labels[:,0]
+
 
 ###----------------------------------
 #           Useful Function
@@ -50,7 +49,7 @@ def conversionGray() :
     start = time.time()
     print('Loading data - Beginning : ', datetime.now())
     for i in range (n_picture) :
-        listGray.append(rgb2gray(plt.imread(f'./data/Faces/{i}.jpg')).reshape(1,-1)[0])
+        listGray.append(rgb2gray(plt.imread(f'./UTKFaces/Faces/{i}.jpg')).reshape(1,-1)[0])
     print('Loading data - End Time : ', datetime.now())
     print(f'       Total time : {round(time.time()-start,2)}s')
     return np.array(listGray)
@@ -63,7 +62,7 @@ def rgb2gray(rgb):
 ###----------------------------------
 
 #%% #
-n_picture = 23705 #up to 23705
+n_picture = 200 #up to 23705
 opt_Components = 100
 
 X = conversionGray()
@@ -73,10 +72,10 @@ n,p = np.shape(X)
 print('\nStart PCA decomposition')
 start = time.time()
 
-# model_PCA = decomposition.PCA(n_components=opt_Components)
-# X_new = model_PCA.fit_transform(X)
+model_PCA = decomposition.PCA(n_components=opt_Components)
+X_new = model_PCA.fit_transform(X)
 
-# print(f'The explained variance is : {np.sum(model_PCA.explained_variance_ratio_)}')
+print(f'The explained variance is : {np.sum(model_PCA.explained_variance_ratio_)}')
 
 temps = round(time.time()-start,2)
 print(f'    Total time : {temps}s')
