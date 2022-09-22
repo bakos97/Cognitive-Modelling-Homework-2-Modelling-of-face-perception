@@ -60,23 +60,31 @@ def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
 
 ###----------------------------------
-#           Main
+#        2. Select the Images
 ###----------------------------------
 
 #%% #
 
-# We choose the people between 20 - 30 yo
+# We choose people who are 25
 ageIndex = []
 
 for i,x in enumerate(ageLabels) : 
-    if ( x > 24 and x < 36 ) : 
+    if ( x == 25 ) : 
         ageIndex.append(i)
 
 # We convert the pictures of those guys 
-print(f'There are {len(ageIndex) } of people between 25 and 35 y/o')
+print(f'There are {len(ageIndex) } who are 25')
 
 ###----------------------------------
-#           Main
+#        3. Run the experiment
+###----------------------------------
+
+###----------------------------------
+#        4. Data pre-processin
+###----------------------------------
+
+###----------------------------------
+#        5. PCA Decompostion
 ###----------------------------------
 
 #%% #
@@ -97,3 +105,23 @@ print(f'The explained variance is : {np.sum(model_PCA.explained_variance_ratio_)
 
 temps = round(time.time()-start,2)
 print(f'    Total time : {temps}s')
+#%%
+
+###--------------------------------------------------------------------
+#               6. Select a subset of revelant PCs
+###--------------------------------------------------------------------
+
+
+###----------------------------------
+#        7. Linear Model
+###----------------------------------
+
+###--------------------------------------------------------------------
+#               8. Generate samples from the model
+###--------------------------------------------------------------------
+
+###--------------------------------------------------------------------
+#               9. Set up a second experiment
+###--------------------------------------------------------------------
+
+
