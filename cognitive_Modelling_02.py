@@ -69,12 +69,11 @@ def rgb2gray(rgb):
 ageIndex = []
 
 for i,x in enumerate(ageLabels) : 
-    if ( x > 19 and x < 31 ) : 
+    if ( x > 24 and x < 36 ) : 
         ageIndex.append(i)
 
 # We convert the pictures of those guys 
-n_picture = len(ageIndex)   # Length of the dataset we used
-print(f'There are {n_picture} of people between 20 and 30 y/o')
+print(f'There are {len(ageIndex) } of people between 25 and 35 y/o')
 
 ###----------------------------------
 #           Main
