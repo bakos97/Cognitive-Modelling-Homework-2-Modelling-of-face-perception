@@ -64,7 +64,6 @@ def rgb2gray(rgb):
 ###----------------------------------
 
 #%% #
-
 # We choose people who are 25
 ageIndex = []
 
@@ -74,13 +73,41 @@ for i,x in enumerate(ageLabels) :
 
 # We convert the pictures of those guys 
 print(f'There are {len(ageIndex) } who are 25')
+#%% #
 
 ###----------------------------------
 #        3. Run the experiment
 ###----------------------------------
+import random
+import xlsxwriter
+
+n_samples = 5
+ageIndex_Train = random.choices(ageIndex, k=n_samples)
+ageIndex_Test = []
+Ratings = []
+
+if True : 
+    for x in ageIndex_Train : 
+        image = plt.imread(f'./UTKFaces/Faces/{x}.jpg')
+        plt.imshow(image)
+        rating = input('Rating of gender from 1 (Male) to 7 (Female) \n')
+        assert type(int(rating)) == int
+        Ratings.append((x,rating))
+    print('--- Rating task done ! ----')
+
+    workbook = xlsxwriter.Workbook('ratings.xlsx')
+    worksheet = workbook.add_worksheet()
+    row = 0; col = 0;
+    # Write on the file 
+    for item in Ratings : 
+        worksheet.write(row, col,     item[0])
+        worksheet.write(row, col + 1, item[1])
+        row += 1
+    workbook.close()
+#%% #
 
 ###----------------------------------
-#        4. Data pre-processin
+#        4. Data pre-processing
 ###----------------------------------
 
 ###----------------------------------
