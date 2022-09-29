@@ -40,7 +40,7 @@ def conversionGray() :
     print('Loading data - Beginning : ', datetime.now())
     for i,x in enumerate(ageIndex) :
         if (i < n_picture) :
-            listGray.append(rgb2gray(plt.imread(f'./UTKFaces/Faces/{i}.jpg')).reshape(1,-1)[0])
+            listGray.append(rgb2gray(plt.imread(f'./UTKFaces/Faces/{x}.jpg')).reshape(1,-1)[0])
     print('Loading data - End Time : ', datetime.now())
     print(f'       Total time : {round(time.time()-start,2)}s')
     return np.array(listGray)
@@ -121,7 +121,7 @@ plt.show()
 #%%
 
 ## Forward Selection 
-n_picture = 734 # Up to 734
+n_picture = len(ageIndex) # Up to 734
 
 # We import the data
 X = conversionGray()
@@ -131,31 +131,33 @@ n,p = np.shape(X)
 # Normalize the dataset (Don't standardise)
 X_mean = X.mean()
 X = X - X_mean
-# Split the datasets
-X_train, X_test, y_train, y_test = model_selection.train_test_split(X, genderLabels, test_size=0.5, random_state=42)
-#%%
 
 def plotting_Reconstruction(model_Name,X,X_Reconstructed,n_image2plot,text) :
     # Plot the reconstructed image
     for i in range(n_image2plot) : 
         plt.figure()
-        f, axarr = plt.subplots(1,2)
+        f, axarr = plt.subplots(1,4)
         img_initial = X[i].reshape(200,200) + X_mean
-        img_recontructed = X_Reconstructed[i].reshape(200,200) + X_mean
+        img_pc = X_Reconstructed[i].reshape(200,200)
+        img_mean = (np.ones(40000)*X_mean).reshape(200,200)
+        img_reconstructed = X_Reconstructed[i].reshape(200,200) + X_mean
         axarr[0].imshow(img_initial, cmap='gray', vmin=0, vmax=255)
         axarr[0].set_title('Initial Picture')
-        axarr[1].imshow(img_recontructed, cmap='gray', vmin=0, vmax=255)
-        axarr[1].set_title('Reconstructed Picture')
+        axarr[1].imshow(img_pc, cmap='gray', vmin=0, vmax=255)
+        axarr[1].set_title('PC Picture')
+        axarr[2].imshow(img_mean, cmap='gray', vmin=0, vmax=255)
+        axarr[2].set_title('Mean Picture')
+        axarr[3].imshow(img_reconstructed, cmap='gray', vmin=0, vmax=255)
+        axarr[3].set_title('Reconstructed Picture')
         f.suptitle(text, fontsize=16)
     return 0
 
-for i in range (1,5) : 
-    model_PCA = decomposition.PCA(n_components=i)
-    X_train_5 = model_PCA.fit_transform(X_train)
-    X_train_5 = model_PCA.inverse_transform(X_train_5)
-    a = np.cumsum(model_PCA.explained_variance_ratio_)[-1]
-    a = round(a,3)
-    plotting_Reconstruction(model_PCA, X_train, X_train_5, 1, f'The explained variance is {a} for {i} PCs')
+model_PCA = decomposition.PCA(n_components=5)
+X_5 = model_PCA.fit_transform(X)
+X_5 = model_PCA.inverse_transform(X_5)
+a = np.cumsum(model_PCA.explained_variance_ratio_)[-1]
+a = round(a,3)
+plotting_Reconstruction(model_PCA, X, X_5, 5, f'The explained variance is {a} for {5} PCs')
 
 ###--------------------------------------------------------------------
 #               6. Select a subset of revelant PCs
@@ -163,16 +165,20 @@ for i in range (1,5) :
 
 #%%
 # To know how many Component we need
-k = 1; searchOpt = False; 
 temp_x = []; temp_y = [];
-print('\nStart the search of Optimal Component'); start = time.time();
+print('\nStart the search of Optimal Component of PCA decomposition')
+start = time.time()
+
+k = 1;
+searchOpt = True; 
+wanted_explained_variance = 0.9 
 
 while searchOpt :
     model_PCA = decomposition.PCA(n_components=k)
     model_PCA.fit(X_train)
     a = np.cumsum(model_PCA.explained_variance_ratio_)[-1]
     temp_x.append(k); temp_y.append(a)
-    if(a > 0.90) :
+    if(a > wanted_explained_variance) :
         searchOpt = False
         break
     k += 1
@@ -187,7 +193,6 @@ plt.show()
 print(f'    Total time : {round(time.time()-start,2)}s')
 
 opt_Components_90 = k #51   # For 90% of explained Variance 
-opt_Components_95 = k #104  # For 95% of explained Variance 
 
 ### PCA Decomposition 
 print('\nStart PCA decomposition')
@@ -207,6 +212,10 @@ print(f'        Total time : {temps}s')
 #        7. Linear Model
 
 ###----------------------------------
+
+
+
+#%%
 
 # Fit the Linear Regression
 reg = LinearRegression().fit(X_train_new, y_train)
