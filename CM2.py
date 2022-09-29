@@ -127,10 +127,10 @@ n_picture = len(ageIndex) # Up to 734
 X = conversionGray()
 n,p = np.shape(X)
 
-#%%
 # Normalize the dataset (Don't standardise)
 X_mean = X.mean()
 X = X - X_mean
+#%%
 
 def plotting_Reconstruction(model_Name,X,X_Reconstructed,n_image2plot,text) :
     # Plot the reconstructed image
@@ -152,13 +152,57 @@ def plotting_Reconstruction(model_Name,X,X_Reconstructed,n_image2plot,text) :
         f.suptitle(text, fontsize=16)
     return 0
 
-model_PCA = decomposition.PCA(n_components=5)
-X_5 = model_PCA.fit_transform(X)
-X_5 = model_PCA.inverse_transform(X_5)
-a = np.cumsum(model_PCA.explained_variance_ratio_)[-1]
-a = round(a,3)
-plotting_Reconstruction(model_PCA, X, X_5, 5, f'The explained variance is {a} for {5} PCs')
+for i in range (1,1) : 
+    model_PCA = decomposition.PCA(n_components=i)
+    X_5 = model_PCA.fit_transform(X)
+    X_5 = model_PCA.inverse_transform(X_5)
+    a = np.cumsum(model_PCA.explained_variance_ratio_)[-1]
+    a = round(a,3)
+    plotting_Reconstruction(model_PCA, X, X_5, 1, f'The explained variance is {a} for {i} PCs')
 
+#%%
+# Action of PCs
+
+for i in range (1,10) :
+    model_PCA = decomposition.PCA(n_components=i)
+    X_5 = model_PCA.fit_transform(X)
+    a = np.cumsum(model_PCA.explained_variance_ratio_)[-1]
+    a = round(a,3)
+    X_column = X_5[:,i-1]
+    i_maxi = np.where(X_column == X_column.max())
+    i_mini = np.where(X_column == X_column.min())
+    X_5 = model_PCA.inverse_transform(X_5)
+    
+    plt.figure()
+    f, axarr = plt.subplots(2,4)
+    img_initial = X[i_maxi].reshape(200,200) + X_mean
+    img_pc = X_5[i_maxi].reshape(200,200)
+    img_mean = (np.ones(40000)*X_mean).reshape(200,200)
+    img_reconstructed = X_5[i_maxi].reshape(200,200) + X_mean
+    axarr[0][0].imshow(img_initial, cmap='gray', vmin=0, vmax=255)
+    axarr[0][0].set_title('Initial Picture')
+    axarr[0][1].imshow(img_pc, cmap='gray', vmin=0, vmax=255)
+    axarr[0][1].set_title('PC Picture')
+    axarr[0][2].imshow(img_mean, cmap='gray', vmin=0, vmax=255)
+    axarr[0][2].set_title('Mean Picture')
+    axarr[0][3].imshow(img_reconstructed, cmap='gray', vmin=0, vmax=255)
+    axarr[0][3].set_title('Reconstructed Picture')
+    
+    img_initial = X[i_mini].reshape(200,200) + X_mean
+    img_pc = X_5[i_mini].reshape(200,200)
+    img_mean = (np.ones(40000)*X_mean).reshape(200,200)
+    img_reconstructed = X_5[i_mini].reshape(200,200) + X_mean
+    axarr[1][0].imshow(img_initial, cmap='gray', vmin=0, vmax=255)
+    axarr[1][0].set_title('Initial Picture')
+    axarr[1][1].imshow(img_pc, cmap='gray', vmin=0, vmax=255)
+    axarr[1][1].set_title('PC Picture')
+    axarr[1][2].imshow(img_mean, cmap='gray', vmin=0, vmax=255)
+    axarr[1][2].set_title('Mean Picture')
+    axarr[1][3].imshow(img_reconstructed, cmap='gray', vmin=0, vmax=255)
+    axarr[1][3].set_title('Reconstructed Picture')
+    f.suptitle(f'The explained variance is {a} for {i} PCs', fontsize=16)
+    
+    plt.show()
 ###--------------------------------------------------------------------
 #               6. Select a subset of revelant PCs
 ###--------------------------------------------------------------------
@@ -175,7 +219,7 @@ wanted_explained_variance = 0.9
 
 while searchOpt :
     model_PCA = decomposition.PCA(n_components=k)
-    model_PCA.fit(X_train)
+    model_PCA.fit(X)
     a = np.cumsum(model_PCA.explained_variance_ratio_)[-1]
     temp_x.append(k); temp_y.append(a)
     if(a > wanted_explained_variance) :
@@ -199,8 +243,7 @@ print('\nStart PCA decomposition')
 start = time.time()
 
 model_PCA = decomposition.PCA(n_components=opt_Components_90)
-X_train_new = model_PCA.fit_transform(X_train)
-X_test_new = model_PCA.fit_transform(X_test)
+X = model_PCA.fit_transform(X)
 
 print(f'    The explained variance is : {np.sum(model_PCA.explained_variance_ratio_)}')
 
