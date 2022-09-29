@@ -23,9 +23,9 @@ from sklearn.metrics import confusion_matrix
 #           Import Data 
 ###----------------------------------
 
-# filename = './UTKFaces/labels.csv'
-filename = '/Users/MichelQu/Documents/GitHub/Cognitive-Modelling-Homework-2-Modelling-of-face-perception?fbclid=IwAR0WLjkD2X-aoSyhTr23nbiolQL2A30awoG-Dsfo0TfsBfGrPU0-PDICHIk'
-file = open(filename + '/UTKFaces/labels.csv')
+filename = './UTKFaces/labels.csv'
+#filename = '/Users/MichelQu/Documents/GitHub/Cognitive-Modelling-Homework-2-Modelling-of-face-perception?fbclid=IwAR0WLjkD2X-aoSyhTr23nbiolQL2A30awoG-Dsfo0TfsBfGrPU0-PDICHIk'
+file = open(filename)
 csvreader = csv.reader(file)
 labels = []
 for row in csvreader : 
@@ -84,11 +84,11 @@ Ratings = []
 
 # Turn it on True if you want to rate yourself a random sub-dataset 
 do_Task = True 
-filename = '/Users/MichelQu/Documents/GitHub/Cognitive-Modelling-Homework-2-Modelling-of-face-perception?fbclid=IwAR0WLjkD2X-aoSyhTr23nbiolQL2A30awoG-Dsfo0TfsBfGrPU0-PDICHIk'
+filename = 'UTKFaces\labels.csv'
 
 if do_Task : 
     for x in ageIndex_Train : 
-        image = plt.imread(filename + f'/UTKFaces/Faces/{x}.jpg')
+        image = plt.imread(f'UTKFaces/Faces/{x}.jpg')
         plt.imshow(image)
         plt.show()
         rating = input('Rating of gender from 1 (Male) to 7 (Female) \n')
