@@ -13,13 +13,8 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-from sklearn import decomposition, tree
+from sklearn import decomposition
 from sklearn import model_selection
-from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier, RandomForestClassifier
-
-from sklearn.svm import LinearSVC
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import make_pipeline
 
 import seaborn as sns; sns.set()
 from sklearn.metrics import confusion_matrix
@@ -28,7 +23,9 @@ from sklearn.metrics import confusion_matrix
 #           Import Data 
 ###----------------------------------
 
-file = open('./UTKFaces/labels.csv')
+# filename = './UTKFaces/labels.csv'
+filename = '/Users/MichelQu/Documents/GitHub/Cognitive-Modelling-Homework-2-Modelling-of-face-perception?fbclid=IwAR0WLjkD2X-aoSyhTr23nbiolQL2A30awoG-Dsfo0TfsBfGrPU0-PDICHIk'
+file = open(filename + '/UTKFaces/labels.csv')
 csvreader = csv.reader(file)
 labels = []
 for row in csvreader : 
@@ -51,7 +48,7 @@ def conversionGray() :
     print('Loading data - Beginning : ', datetime.now())
     for i,x in enumerate(ageIndex) :
         if (i < n_picture) :
-            listGray.append(rgb2gray(plt.imread(f'./UTKFaces/Faces/{i}.jpg')).reshape(1,-1)[0])
+            listGray.append(rgb2gray(plt.imread(filename + f'/UTKFaces/Faces/{i}.jpg')).reshape(1,-1)[0])
     print('Loading data - End Time : ', datetime.now())
     print(f'       Total time : {round(time.time()-start,2)}s')
     return np.array(listGray)
@@ -63,7 +60,6 @@ def rgb2gray(rgb):
 #        2. Select the Images
 ###----------------------------------
 
-#%% #
 # We choose people who are 25
 ageIndex = []
 
@@ -77,6 +73,7 @@ print(f'There are {len(ageIndex) } who are 25')
 ###----------------------------------
 #        3. Run the experiment
 ###----------------------------------
+#%% #
 import random
 import xlsxwriter
 
@@ -85,12 +82,15 @@ ageIndex_Train = random.choices(ageIndex, k=n_samples)
 ageIndex_Test = []
 Ratings = []
 
-do_Task = False 
+# Turn it on True if you want to rate yourself a random sub-dataset 
+do_Task = True 
+filename = '/Users/MichelQu/Documents/GitHub/Cognitive-Modelling-Homework-2-Modelling-of-face-perception?fbclid=IwAR0WLjkD2X-aoSyhTr23nbiolQL2A30awoG-Dsfo0TfsBfGrPU0-PDICHIk'
 
 if do_Task : 
     for x in ageIndex_Train : 
-        image = plt.imread(f'./UTKFaces/Faces/{x}.jpg')
+        image = plt.imread(filename + f'/UTKFaces/Faces/{x}.jpg')
         plt.imshow(image)
+        plt.show()
         rating = input('Rating of gender from 1 (Male) to 7 (Female) \n')
         assert type(int(rating)) == int
         Ratings.append((x,rating))
@@ -113,23 +113,24 @@ if do_Task :
 
 import pandas as pd
 
-filepath = './our_Ratings.xlsx'
+filepath = filename + '/our_Ratings.xlsx'
 # Import the excel file
 df = pd.read_excel (filepath)
 # Normalized the Ratings
 df['Normalized_Rating'] = (df['Rating']-df['Rating'].mean())/df['Rating'].std()
 # Histogram of Normalized data
-df.hist(column = 'Normalized_Rating', bins = 10)
+df.hist(column = 'Normalized_Rating', bins = 7)
 
-###----------------------------------
-#        5. PCA Decompostion
-###----------------------------------
+###---------------------------------------
+#        5. PCA and Feature Selection
+###---------------------------------------
 
 #%% #
-n_picture = 200 #up to 23705
-opt_Components = 100
+n_picture = len(ageIndex) #up to 23705
+opt_Components = 3
 
 X = conversionGray()
+X = X - X.mean()
 n,p = np.shape(X)
 
 ### PCA Decomposition 
