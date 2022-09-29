@@ -135,13 +135,35 @@ X = X - X_mean
 X_train, X_test, y_train, y_test = model_selection.train_test_split(X, genderLabels, test_size=0.5, random_state=42)
 #%%
 
+def plotting_Reconstruction(model_Name,X,X_Reconstructed,n_image2plot,text) :
+    # Plot the reconstructed image
+    for i in range(n_image2plot) : 
+        plt.figure()
+        f, axarr = plt.subplots(1,2)
+        img_initial = X[i].reshape(200,200) + X_mean
+        img_recontructed = X_Reconstructed[i].reshape(200,200) + X_mean
+        axarr[0].imshow(img_initial, cmap='gray', vmin=0, vmax=255)
+        axarr[0].set_title('Initial Picture')
+        axarr[1].imshow(img_recontructed, cmap='gray', vmin=0, vmax=255)
+        axarr[1].set_title('Reconstructed Picture')
+        f.suptitle(text, fontsize=16)
+    return 0
+
+for i in range (1,5) : 
+    model_PCA = decomposition.PCA(n_components=i)
+    X_train_5 = model_PCA.fit_transform(X_train)
+    X_train_5 = model_PCA.inverse_transform(X_train_5)
+    a = np.cumsum(model_PCA.explained_variance_ratio_)[-1]
+    a = round(a,3)
+    plotting_Reconstruction(model_PCA, X_train, X_train_5, 1, f'The explained variance is {a} for {i} PCs')
+
 ###--------------------------------------------------------------------
 #               6. Select a subset of revelant PCs
 ###--------------------------------------------------------------------
 
 #%%
 # To know how many Component we need
-k = 1; searchOpt = True; 
+k = 1; searchOpt = False; 
 temp_x = []; temp_y = [];
 print('\nStart the search of Optimal Component'); start = time.time();
 
@@ -164,8 +186,8 @@ plt.title('Search for the optimal number of Components')
 plt.show()
 print(f'    Total time : {round(time.time()-start,2)}s')
 
-opt_Components_90 = 51 # For 90% of explained Variance 
-opt_Components_95 = 104 # For 95% of explained Variance 
+opt_Components_90 = k #51   # For 90% of explained Variance 
+opt_Components_95 = k #104  # For 95% of explained Variance 
 
 ### PCA Decomposition 
 print('\nStart PCA decomposition')
