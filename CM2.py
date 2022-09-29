@@ -130,6 +130,14 @@ n,p = np.shape(X)
 # Normalize the dataset (Don't standardise)
 X_mean = X.mean()
 X = X - X_mean
+
+#%%
+X_test_true = X[n-10:] 
+X = X[:n-10]
+
+y = (df['Normalized_Rating'].values)
+y_test = y[n-10:] 
+y = y[:n-10]
 #%%
 
 def plotting_Reconstruction(model_Name,X,X_Reconstructed,n_image2plot,text) :
@@ -215,7 +223,7 @@ start = time.time()
 
 k = 1;
 searchOpt = True; 
-wanted_explained_variance = 0.9 
+wanted_explained_variance = 0.95
 
 while searchOpt :
     model_PCA = decomposition.PCA(n_components=k)
@@ -227,7 +235,7 @@ while searchOpt :
         break
     k += 1
 
-print(f'We need {k} components to get 90% of the explained variance (here, we have : {a})')
+print(f'We need {k} components to get {wanted_explained_variance*100}% of the explained variance (here, we have : {a})')
 plt.plot(temp_x,temp_y)
 plt.grid()
 plt.xlabel('Number of Components')
@@ -236,13 +244,15 @@ plt.title('Search for the optimal number of Components')
 plt.show()
 print(f'    Total time : {round(time.time()-start,2)}s')
 
-opt_Components_90 = k #51   # For 90% of explained Variance 
+#%%
+opt_Components_90 = 57 # k
+opt_Components_95 = 122 #k
 
 ### PCA Decomposition 
 print('\nStart PCA decomposition')
 start = time.time()
 
-model_PCA = decomposition.PCA(n_components=opt_Components_90)
+model_PCA = decomposition.PCA(n_components=opt_Components_95)
 X = model_PCA.fit_transform(X)
 
 print(f'    The explained variance is : {np.sum(model_PCA.explained_variance_ratio_)}')
@@ -256,25 +266,27 @@ print(f'        Total time : {temps}s')
 
 ###----------------------------------
 
-
-
 #%%
-
 # Fit the Linear Regression
-reg = LinearRegression().fit(X_train_new, y_train)
-# Predict the age Labels
-gender_criterion = 0.5
-y_hat = (reg.predict(X_test_new) > gender_criterion)*1
+# list_weight = np.linalg.inv(np.transpose(X)@X) @ (np.transpose(X)@df['Normalized_Rating'].values)
+reg = LinearRegression().fit(X, y)
+slope = reg.coef_
+intercept = reg.intercept_
 
-# Build the confusion Matrix
-cm = confusion_matrix(y_test,y_hat)
-test_length = len(y_hat)
-trueClassification = cm[0][0] + cm[1][1];
+alpha = [(y-intercept)/(np.transpose(slope)@slope) for y in y_test]
+x_test = [alp*slope for alp in alpha]
+x_test = model_PCA.inverse_transform(x_test)
 
-print(f'The percentage of true gender classification with the linear Regression is {trueClassification/test_length}')
-disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-disp.plot()
-plt.show()
+for i in range (len(x_test)) : 
+    plt.figure()
+    f, axarr = plt.subplots(1,2)
+    img_initial = X_test_true[i].reshape(200,200) + X_mean
+    img_reconstructed = x_test[i].reshape(200,200) + X_mean    
+    axarr[0].imshow(img_initial, cmap='gray', vmin=0, vmax=255)
+    axarr[0].set_title('Initial Picture')
+    axarr[1].imshow(img_reconstructed, cmap='gray', vmin=0, vmax=255)
+    axarr[1].set_title(f'Synthetic face Picture {i}')
+    plt.show()
 
 ###--------------------------------------------------------------------
 #               8. Generate samples from the model
