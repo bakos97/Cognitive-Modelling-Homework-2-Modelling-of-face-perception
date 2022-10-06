@@ -295,10 +295,18 @@ print('End PCA decomposition')
 
 from sklearn.feature_selection import SequentialFeatureSelector
 
+### Feature Selection 
+print('\nStart Feature Selection')
+start = time.time()
+
 reg = LinearRegression()
 sfs = SequentialFeatureSelector(reg,n_features_to_select=20)
-X_selected = sfs.fit_transform(X_pca,y_train)
-print(sfs.get_support())
+X_pca_selected = sfs.fit_transform(X_pca,y_train)
+print(f'    The selected feature is : {sfs.get_support()}')
+
+temps = round(time.time()-start,2)
+print(f'        Total time : {temps}s')
+print('End Feature Selection')
 
 ###----------------------------------
 #        7. Linear Model
@@ -308,7 +316,7 @@ print(sfs.get_support())
 #%%
 # Fit the Linear Regression
 # list_weight = np.linalg.inv(np.transpose(X)@X) @ (np.transpose(X)@df['Normalized_Rating'].values)
-reg = LinearRegression().fit(X_pca, y_train)
+reg = LinearRegression().fit(X_pca_selected, y_train)
 slope = reg.coef_
 intercept = reg.intercept_
 
@@ -330,10 +338,11 @@ def synthetic_faces(x_synthetic, x_initial) :
     return 0
 
 # Generate images in of our data set 
-index_selected = random.choices(np.arange(0,len(y_train),1),k=20)
+index_selected = random.choices(np.arange(0,len(y_train),1),k=5)
 synthetic_in = y_train[index_selected]
 alpha_in = [(y-intercept)/(np.transpose(slope)@slope) for y in synthetic_in]
 x_synthetic_in = [alp*slope for alp in alpha_in]
+x_synthetic_in = sfs.inverse_transform(x_synthetic_in)
 x_synthetic_in = model_PCA.inverse_transform(x_synthetic_in)
 
 synthetic_faces(x_synthetic_in,X_train[index_selected])
@@ -344,6 +353,7 @@ ratings = np.array([1,2,3,4,5,6,7])
 ratings_normalized = (ratings - ratings.min())/(ratings.max()-ratings.min())
 alpha_continuum = [(y-intercept)/(np.transpose(slope)@slope) for y in ratings_normalized]
 x_synthetic_continuum = [alp*slope for alp in alpha_continuum]
+x_synthetic_continuum = sfs.inverse_transform(x_synthetic_continuum)
 x_synthetic_continuum = model_PCA.inverse_transform(x_synthetic_continuum)
 
 def plotting_Continuum(x_continuum = x_synthetic_continuum) : 
@@ -355,12 +365,87 @@ def plotting_Continuum(x_continuum = x_synthetic_continuum) :
     # We build the continuum    
     continuum = np.concatenate([images[0],images[1],images[2],images[3],images[4],images[5],images[6]],axis=1)
     plt.imshow(continuum, cmap='gray',vmin = 0,vmax = 255)
+    plt.axis('off')
     plt.title("The continuum")
     plt.show()
-    return
-
-plotting_Continuum(x_synthetic_continuum)
+    return (images)
 
 ###--------------------------------------------------------------------
 #               9. Set up a second experiment
 ###--------------------------------------------------------------------
+
+#%%
+
+# Creation the testing 
+
+images = plotting_Continuum(x_synthetic_continuum)
+images = np.repeat(images,10,axis=0) # Creates 70 images (10 times)
+ratings_images = np.repeat(ratings,10)
+
+c = list(zip(images,ratings_images))
+np.random.shuffle(c)
+images_shuffled, ratings_images_shuffled = zip(*c)
+
+# Turn it on True if you want to rate yourself a random sub-dataset 
+do_Ratings_Q9 = True 
+
+if do_Ratings_Q9 :
+    name = input('What is your name ? \n' )
+    # Save the images we used 
+    f, axarr = plt.subplots(10,7, figsize=(100,100))
+    for k in range (len(images_shuffled)) : 
+        image = images_shuffled[k]
+        true_rating = ratings_images_shuffled[k]
+        i = k//7
+        j = k%7
+        axarr[i][j].imshow(image, cmap='gray', vmin=0, vmax=255)
+        axarr[i][j].axis('off')
+        axarr[i][j].set_title(f'Rate : {true_rating}', fontsize = 48)
+    plt.savefig(f'{name}_dataset.png')
+    plt.show()
+    
+    print("\nYou can begin the rating of the continuum images")
+    # We rate them now 
+    for i in range (len(images_shuffled)) :
+        image = images_shuffled[i]
+        true_rating = ratings_images_shuffled[i]
+        plt.imshow(image, cmap='gray', vmin=0, vmax=255)
+        plt.show()
+        rating = input('Rating of gender from 1 (Male) to 7 (Female) \n')
+        assert type(int(rating)) == int
+        Ratings.append((f'Image {i}',rating,true_rating))
+    print('--- Rating task done ! ----')
+    
+    # Store the data in a excel file 
+    workbook = xlsxwriter.Workbook(f'{name}_ratings.xlsx')
+    worksheet = workbook.add_worksheet()
+    row = 0; col = 0;
+    # Write on the file 
+    for item in Ratings : 
+        worksheet.write(row, col,     item[0])
+        worksheet.write(row, col + 1, item[1])
+        worksheet.write(row, col + 2, item[2])
+        row += 1
+    workbook.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
