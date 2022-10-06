@@ -4,6 +4,7 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 from sklearn import decomposition
 from sklearn import model_selection
@@ -119,11 +120,8 @@ plt.show()
 ###---------------------------------------
 
 #%%
-
-## Forward Selection 
-n_picture = len(ageIndex) # Up to 734
-
 # We import the data
+n_picture = len(ageIndex) # Up to 734
 X_data = conversionGray()
 n,p = np.shape(X_data)
 
@@ -131,9 +129,6 @@ n,p = np.shape(X_data)
 X_mean = X_data.mean(); X_max = X_data.max(); X_min = X_data.min();
 X = (X_data-X_min)/(X_max-X_min)
 
-# Standardise 
-# X_mean = X_data.mean()
-# X = (X_data-X_mean)
 #%%
 X_test_true = X[n-10:] 
 X = X[:n-10]
@@ -147,35 +142,18 @@ def plotting_Reconstruction(model_Name,X,X_Reconstructed,n_image2plot,text) :
     # Plot the reconstructed image
     for i in range(n_image2plot) : 
         plt.figure()
-        f, axarr = plt.subplots(1,3)
+        f, axarr = plt.subplots(1,2)
         img_initial = ((X[i].reshape(200,200))*(X_max-X_min)) + X_min
         img_pc = ((X_Reconstructed[i].reshape(200,200))*(X_max-X_min)) + X_min
         img_reconstructed = ((X_Reconstructed[i].reshape(200,200))*(X_max-X_min)) + X_min
         axarr[0].imshow(img_initial, cmap='gray', vmin=0, vmax=255)
         axarr[0].set_title('Initial Picture')
-        axarr[1].imshow(img_pc, cmap='gray', vmin=0, vmax=255)
-        axarr[1].set_title('PC Picture')
-        axarr[2].imshow(img_reconstructed, cmap='gray', vmin=0, vmax=255)
-        axarr[2].set_title('Reconstructed Picture')
+        axarr[1].imshow(img_reconstructed, cmap='gray', vmin=0, vmax=255)
+        axarr[1].set_title('Reconstructed Picture')
         f.suptitle(text, fontsize=16)
-        
-        # f, axarr = plt.subplots(1,4)
-        #img_initial = X[i].reshape(200,200) + X_mean
-        #img_pc = X_Reconstructed[i].reshape(200,200)
-        #img_mean = (np.ones(40000)*X_mean).reshape(200,200)
-        #img_reconstructed = X_Reconstructed[i].reshape(200,200) + X_mean
-        # axarr[0].imshow(img_initial, cmap='gray', vmin=0, vmax=255)
-        # axarr[0].set_title('Initial Picture')
-        # axarr[1].imshow(img_pc, cmap='gray', vmin=0, vmax=255)
-        # axarr[1].set_title('PC Picture')
-        # axarr[2].imshow(img_mean, cmap='gray', vmin=0, vmax=255)
-        # axarr[2].set_title('Mean Picture')
-        # axarr[3].imshow(img_reconstructed, cmap='gray', vmin=0, vmax=255)
-        # axarr[3].set_title('Reconstructed Picture')
-        # f.suptitle(text, fontsize=16)
     return 0
 
-for i in range (1,5) : 
+for i in range (1,2) : 
     model_PCA = decomposition.PCA(n_components=i)
     X_5 = model_PCA.fit_transform(X)
     X_5 = model_PCA.inverse_transform(X_5)
@@ -184,7 +162,7 @@ for i in range (1,5) :
     plotting_Reconstruction(model_PCA, X, X_5, 1, f'The explained variance is {a} for {i} PCs')
 
 #%%
-# Action of PCs
+# Action of PCs - The effect of the PCs on the decomposition 
 
 def PCsAction() : 
     for i in range (1,10) :
@@ -228,7 +206,6 @@ def PCsAction() :
         
         plt.show()
         return 0
-
 def PCsAction_V2(pc_number = 10) : 
     for i in range (1,pc_number) :
         model_PCA = decomposition.PCA(n_components=i)
@@ -260,12 +237,7 @@ def PCsAction_V2(pc_number = 10) :
         
         plt.show()
     return 0
-    
 PCsAction_V2(10)
-
-###--------------------------------------------------------------------
-#               6. Select a subset of revelant PCs
-###--------------------------------------------------------------------
 
 #%%
 # To know how many Component we need
@@ -297,13 +269,14 @@ plt.show()
 print(f'    Total time : {round(time.time()-start,2)}s')
 
 #%%
+from sklearn.model_selection import train_test_split
 
 # Normalize the dataset (Don't standardise)
 X_mean = X_data.mean(); X_max = X_data.max(); X_min = X_data.min();
 X = (X_data-X_min)/(X_max-X_min); y = (df['Normalized_Rating'].values);
 # The testing set 
-X_test_true = X[n-10:]; X = X[:n-10]; y_test = y[n-10:]; y = y[:n-10];
-
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size = 0.05, random_state = 42)
+#%%
 opt_Components_90 = 57 # k
 opt_Components_95 = 122 #k
 
@@ -312,7 +285,7 @@ print('\nStart PCA decomposition')
 start = time.time()
 
 model_PCA = decomposition.PCA(n_components=opt_Components_95)
-X = model_PCA.fit_transform(X)
+X_pca = model_PCA.fit_transform(X_train)
 
 print(f'    The explained variance is : {np.sum(model_PCA.explained_variance_ratio_)}')
 
@@ -320,6 +293,12 @@ temps = round(time.time()-start,2)
 print(f'        Total time : {temps}s')
 print('End PCA decomposition')
 #%%
+
+###--------------------------------------------------------------------
+#               6. Select a subset of revelant PCs
+###--------------------------------------------------------------------
+
+
 
 ###----------------------------------
 #        7. Linear Model
@@ -329,7 +308,7 @@ print('End PCA decomposition')
 #%%
 # Fit the Linear Regression
 # list_weight = np.linalg.inv(np.transpose(X)@X) @ (np.transpose(X)@df['Normalized_Rating'].values)
-reg = LinearRegression().fit(X, y)
+reg = LinearRegression().fit(X_pca, y_train)
 slope = reg.coef_
 intercept = reg.intercept_
 
@@ -337,24 +316,37 @@ intercept = reg.intercept_
 #               8. Generate samples from the model
 ###--------------------------------------------------------------------
 
-alpha = [(y-intercept)/(np.transpose(slope)@slope) for y in y_test]
-x_test = [alp*slope for alp in alpha]
-x_test = model_PCA.inverse_transform(x_test)
-
-def synthetic_faces(values_to_Synthetic_list = x_test, x_test_true = X_test_true) : 
-    for i in range (len(values_to_Synthetic_list)) : 
+def synthetic_faces(x_synthetic, x_initial) : 
+    n_synthetic_to_generate = 5
+    if (n_synthetic_to_generate > len(x_synthetic)):
+        n_synthetic_to_generate = len(x_synthetic)
+    for i in range (n_synthetic_to_generate) : 
         plt.figure()
         f, axarr = plt.subplots(1,2)
-        img_initial = ((X_test_true[i].reshape(200,200))*(X_max-X_min)) + X_min
-        img_reconstructed = ((values_to_Synthetic_list[i].reshape(200,200))*(X_max-X_min)) + X_min   
+        img_initial = ((x_initial[i].reshape(200,200))*(X_max-X_min)) + X_min
+        img_reconstructed = ((x_synthetic[i].reshape(200,200))*(X_max-X_min)) + X_min   
         axarr[0].imshow(img_initial, cmap='gray', vmin=0, vmax=255)
         axarr[0].set_title('Initial Picture')
         axarr[1].imshow(img_reconstructed, cmap='gray', vmin=0, vmax=255)
-        axarr[1].set_title(f'Synthetic face Picture {i}')
+        axarr[1].set_title(f'Synthetic face Picture {i+1}')
         plt.show()
     return 0
 
-synthetic_faces(x_test,X_test_true)
+# Generate images in of our data set 
+synthetic_in = random.choices(y_train,k=5)
+alpha_in = [(y-intercept)/(np.transpose(slope)@slope) for y in synthetic_in]
+x_synthetic_in = [alp*slope for alp in alpha_in]
+x_synthetic_in = model_PCA.inverse_transform(x_synthetic_in)
+
+synthetic_faces(x_synthetic_in,X_train)
+
+# Generate images out of our data set 
+# synthetic_out = random.choices(y_test,k=5)
+# alpha_out = [(y-intercept)/(np.transpose(slope)@slope) for y in synthetic_out]
+# x_synthetic_out = [alp*slope for alp in alpha_out]
+# x_synthetic_out = model_PCA.inverse_transform(x_synthetic_out)
+
+# synthetic_faces(x_synthetic_out,X_test)
 
 ###--------------------------------------------------------------------
 #               9. Set up a second experiment
