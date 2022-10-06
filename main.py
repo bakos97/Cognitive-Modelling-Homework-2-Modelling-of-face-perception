@@ -10,6 +10,13 @@ from sklearn import model_selection
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import LinearRegression
 
+
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score as acc
+from mlxtend.feature_selection import SequentialFeatureSelector as sfs
+
 import seaborn as sns;
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
@@ -267,7 +274,7 @@ PCsAction_V2(10)
 #               6. Select a subset of revelant PCs
 ###--------------------------------------------------------------------
 
-#%%
+#%% 
 # To know how many Component we need
 temp_x = []; temp_y = [];
 print('\nStart the search of Optimal Component of PCA decomposition')
@@ -359,3 +366,15 @@ synthetic_faces(x_test,X_test_true)
 ###--------------------------------------------------------------------
 #               9. Set up a second experiment
 ###--------------------------------------------------------------------
+#%%
+X_train, X_test, y_train, y_test = train_test_split(
+    df.values[:,:-1],
+    df.values[:,-1:],
+    test_size=0.25,
+    random_state=42)
+
+y_train = y_train.ravel()
+y_test = y_test.ravel()
+
+print('Training dataset shape:', X_train.shape, y_train.shape)
+print('Testing dataset shape:', X_test.shape, y_test.shape)
