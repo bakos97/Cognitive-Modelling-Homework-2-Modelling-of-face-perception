@@ -8,7 +8,6 @@ import random
 
 from sklearn import decomposition
 from sklearn import model_selection
-from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import LinearRegression
 
 
@@ -127,6 +126,8 @@ plt.show()
 ###---------------------------------------
 
 #%%
+from sklearn.model_selection import train_test_split
+
 # We import the data
 n_picture = len(ageIndex) # Up to 734
 X_data = conversionGray()
@@ -134,15 +135,9 @@ n,p = np.shape(X_data)
 
 # Normalize the dataset (Don't standardise)
 X_mean = X_data.mean(); X_max = X_data.max(); X_min = X_data.min();
-X = (X_data-X_min)/(X_max-X_min)
-
-#%%
-X_test_true = X[n-10:] 
-X = X[:n-10]
-
-y = (df['Normalized_Rating'].values)
-y_test = y[n-10:] 
-y = y[:n-10]
+X = (X_data-X_min)/(X_max-X_min); y = (df['Normalized_Rating'].values);
+# The testing set 
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size = 0.05, random_state = 42)
 #%%
 
 def plotting_Reconstruction(model_Name,X,X_Reconstructed,n_image2plot,text) :
@@ -162,7 +157,7 @@ def plotting_Reconstruction(model_Name,X,X_Reconstructed,n_image2plot,text) :
 
 for i in range (1,2) : 
     model_PCA = decomposition.PCA(n_components=i)
-    X_5 = model_PCA.fit_transform(X)
+    X_5 = model_PCA.fit_transform(X_train)
     X_5 = model_PCA.inverse_transform(X_5)
     a = np.cumsum(model_PCA.explained_variance_ratio_)[-1]
     a = round(a,3)
@@ -257,13 +252,13 @@ temp_x = []; temp_y = [];
 print('\nStart the search of Optimal Component of PCA decomposition')
 start = time.time()
 
-k = 1;
+k = 10;
 searchOpt = True; 
 wanted_explained_variance = 0.95
 
 while searchOpt :
     model_PCA = decomposition.PCA(n_components=k)
-    model_PCA.fit(X)
+    model_PCA.fit(X_train)
     a = np.cumsum(model_PCA.explained_variance_ratio_)[-1]
     temp_x.append(k); temp_y.append(a)
     if(a > wanted_explained_variance) :
@@ -310,7 +305,12 @@ print('End PCA decomposition')
 #               6. Select a subset of revelant PCs
 ###--------------------------------------------------------------------
 
+from sklearn.feature_selection import SequentialFeatureSelector
 
+reg = LinearRegression()
+sfs = SequentialFeatureSelector(reg,n_features_to_select=20)
+X_selected = sfs.fit_transform(X_pca,y_train)
+print(sfs.get_support())
 
 ###----------------------------------
 #        7. Linear Model
@@ -329,10 +329,7 @@ intercept = reg.intercept_
 ###--------------------------------------------------------------------
 
 def synthetic_faces(x_synthetic, x_initial) : 
-    n_synthetic_to_generate = 5
-    if (n_synthetic_to_generate > len(x_synthetic)):
-        n_synthetic_to_generate = len(x_synthetic)
-    for i in range (n_synthetic_to_generate) : 
+    for i in range (len(x_synthetic)) : 
         plt.figure()
         f, axarr = plt.subplots(1,2)
         img_initial = ((x_initial[i].reshape(200,200))*(X_max-X_min)) + X_min
@@ -345,20 +342,36 @@ def synthetic_faces(x_synthetic, x_initial) :
     return 0
 
 # Generate images in of our data set 
-synthetic_in = random.choices(y_train,k=5)
+index_selected = random.choices(np.arange(0,len(y_train),1),k=20)
+synthetic_in = y_train[index_selected]
 alpha_in = [(y-intercept)/(np.transpose(slope)@slope) for y in synthetic_in]
 x_synthetic_in = [alp*slope for alp in alpha_in]
 x_synthetic_in = model_PCA.inverse_transform(x_synthetic_in)
 
-synthetic_faces(x_synthetic_in,X_train)
+synthetic_faces(x_synthetic_in,X_train[index_selected])
 
-# Generate images out of our data set 
-# synthetic_out = random.choices(y_test,k=5)
-# alpha_out = [(y-intercept)/(np.transpose(slope)@slope) for y in synthetic_out]
-# x_synthetic_out = [alp*slope for alp in alpha_out]
-# x_synthetic_out = model_PCA.inverse_transform(x_synthetic_out)
+#%%
+# Do the continuum image
+ratings = np.array([1,2,3,4,5,6,7])
+ratings_normalized = (ratings - ratings.min())/(ratings.max()-ratings.min())
+alpha_continuum = [(y-intercept)/(np.transpose(slope)@slope) for y in ratings_normalized]
+x_synthetic_continuum = [alp*slope for alp in alpha_continuum]
+x_synthetic_continuum = model_PCA.inverse_transform(x_synthetic_continuum)
 
-# synthetic_faces(x_synthetic_out,X_test)
+def plotting_Continuum(x_continuum = x_synthetic_continuum) : 
+    n = len(x_synthetic_continuum)
+    images = []
+    for x in x_continuum : 
+        images.append( ((x.reshape(200,200))*(X_max-X_min)) + X_min )
+    images = np.array(images)
+    # We build the continuum    
+    continuum = np.concatenate([images[0],images[1],images[2],images[3],images[4],images[5],images[6]],axis=1)
+    plt.imshow(continuum, cmap='gray',vmin = 0,vmax = 255)
+    plt.title("The continuum")
+    plt.show()
+    return
+
+plotting_Continuum(x_synthetic_continuum)
 
 ###--------------------------------------------------------------------
 #               9. Set up a second experiment
