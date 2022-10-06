@@ -103,7 +103,7 @@ if do_Task :
 print(f'Part 4 : We import our ratings of the {len(ageIndex)} images')
 filepath = './our_Ratings.xlsx'
 # Import the excel file
-df = pd.read_excel (filepath)
+df = pd.read_excel(filepath)
 # Normalized the Ratings
 df['Normalized_Rating'] = (df['Rating']-df['Rating'].min())/(df['Rating'].max()-df['Rating'].min())
 # Histogram of Normalized data
@@ -368,6 +368,7 @@ do_Ratings_Q9 = True
 
 if do_Ratings_Q9 :
     name = input('What is your name ?   ' )
+    name = name.lower()
     # Save the images that we will evaluate in this task with the true ratings 
     f, axarr = plt.subplots(10,7, figsize=(100,100))
     for k in range (len(images_shuffled)) : 
@@ -383,7 +384,8 @@ if do_Ratings_Q9 :
     plt.show()
     
     print("\nYou can begin the rating of the continuum images")
-    # We rate all the pictures now 
+    # We rate all the pictures now
+    Ratings = []
     for i in range (len(images_shuffled)) :
         image = images_shuffled[i]
         true_rating = ratings_images_shuffled[i]
@@ -397,20 +399,31 @@ if do_Ratings_Q9 :
             try : 
                 rating = input(f'Picture n°{i+1} : Rating of gender from 1 (Male) to 7 (Female) :   ')
                 rating = int(rating)
-                break
+                if (rating > 7 or rating < 1) : 
+                    rating = int('a')
+                else : 
+                    break
             except Exception : 
-                print('The rating is not a number, try again')
-        Ratings.append((f'Image {i}',rating,true_rating))
+                print('The rating is not a number or out of range, try again')
+        Ratings.append((f'{i}',rating,true_rating))
     print('--- Rating task done ! ----')
     
     # Store the rates in a excel file 
     workbook = xlsxwriter.Workbook(f'{name}_ratings.xlsx')
     worksheet = workbook.add_worksheet()
+    
     row = 0; col = 0;
-    for item in Ratings : 
-        worksheet.write(row, col,     item[0]) # The index of the picture
-        worksheet.write(row, col + 1, item[1]) # The rating we gave
-        worksheet.write(row, col + 2, item[2]) # The true rating of the picture
+    for row, item in enumerate(Ratings) : 
+        if (row == 0) : 
+            # We set the name of the column 
+            worksheet.write(row, 0 , 'Image_Index')
+            worksheet.write(row, 1 , 'Rating')
+            worksheet.write(row, 2 , 'True_Rating')
+        else :
+            # We fill with the data
+            worksheet.write(row, 0 , item[0]) # The index of the picture
+            worksheet.write(row, 1 , item[1]) # The rating we gave
+            worksheet.write(row, 2 , item[2]) # The true rating of the picture
         row += 1
     workbook.close()
     
@@ -420,9 +433,21 @@ print('Part 9-2 : We analyze the data from the second experiment')
 
 filenames = ['Michel_ratings.xlsx']
 
+ratings_hat = []; rating_true = [];
+
+# We extract all data we need from the excel files
+for file in filenames :
+    dataframe = pd.read_excel(file)
+    ratings_hat.append(dataframe['Rating'].values)
+    rating_true.append(dataframe['True_Rating'].values)
+ratings_hat = (np.array(ratings_hat)).reshape(-1)
+rating_true = (np.array(rating_true)).reshape(-1)
 
 
+# ROC Curve
+from sklearn.metrics import roc_curve
 
+# Psychometric Function
 
 
 
