@@ -14,6 +14,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn import metrics 
 
 from scipy.stats import norm
+from scipy.optimize import minimize
 
 ###----------------------------------
 #           Import Data 
@@ -294,7 +295,7 @@ print('Part 8-1 : We generate some synthetic pictures')
 def synthetic_faces(x_synthetic, x_initial) : 
     n = len(x_synthetic)
     plt.figure()
-    f, axarr = plt.subplots(n,2, figsize = (2,8))
+    f, axarr = plt.subplots(n,2, figsize = (50,8))
     for i in range (n) : 
         img_initial = ((x_initial[i].reshape(200,200))*(X_max-X_min)) + X_min
         img_reconstructed = ((x_synthetic[i].reshape(200,200))*(X_max-X_min)) + X_min   
@@ -350,8 +351,6 @@ plotting_Continuum(x_synthetic_continuum,True)
 ###--------------------------------------------------------------------
 #               9. Set up a second experiment
 ###--------------------------------------------------------------------
-
-#%%
 
 print('---------------------------------------------- ')
 print('Part 9-1 : We do the Second experiment')
@@ -435,12 +434,10 @@ if do_Ratings_Q9 :
         row += 1
     workbook.close()
     
-#%%
 
 print('Part 9-2 : We analyze the data from the second experiment')
 
 filenames = ['./records/michel_ratings.xlsx', './records/arthur_ratings.xlsx', './records/christian_ratings.xlsx' , './records/dominik_ratings.xlsx']
-
 ratings_hat_list = []; rating_true_list = [];
 
 # We extract all data we need from the excel files
@@ -460,43 +457,85 @@ for x in rating_true_list :
         ratings_true.append(item)
 ratings_true = np.array(ratings_true)
 
-def plot_ROC_Curves (ratings_true=ratings_true, ratings_hat=ratings_hat) :
+
+def plot_ROC_Curves (ratings_true=ratings_true, ratings_hat=ratings_hat, baseline = 1) :
+    index_Baseline = np.where(ratings_true == baseline)
+    ratings_true_Baseline = ratings_true[index_Baseline[0]]
+    ratings_hat_Baseline = ratings_hat[index_Baseline[0]]
+    
     for i in range (1,8) :
-        baseline = i 
-        # Estimation Ratings List
-        list_hat = []
-        for x in ratings_hat : 
-            # 0 = male and 1 = female 
-            if (x == baseline) : 
-                list_hat.append(1)
-            else : 
-                list_hat.append(0)
-        list_hat = np.array(list_hat)
+        if (i!=baseline) : 
+            print(f'   Baseline {baseline} vs Rating {i}')
+            
+            index_R = np.where(ratings_true == i)
+            ratings_true_R = ratings_true[index_R[0]]
+            ratings_hat_R = ratings_hat[index_R[0]]
+            
+            # We use the unequal Variance Model with s0 = baseline 
+            mu_s0 = ratings_hat_Baseline.mean()
+            mu_s = ratings_hat_R.mean()
+            std_s0 = ratings_hat_Baseline.std()
+            std_s = ratings_hat_R.std()
+            # We choose the different criterion 
+            c_up = mu_s
+            c_down = mu_s0
+            c = (c_up+c_down)/2
+            
+            print(f'  The criterion are : {c_down}, {c}, {c_up}')
         
-        # True Ratings List
-        list_true = []
-        for x in ratings_true : 
-            # 0 = male and 1 = female 
-            if (x == baseline) : 
-                list_true.append(1)
-            else : 
-                list_true.append(0)
-        list_true = np.array(list_true)
-        
-        ## Plottings stuff
-        fpr, tpr, thresholds = metrics.roc_curve(list_hat,list_true)
-        
-        plt.plot(fpr,tpr, label = f'Baseline {i}')
-
+            # We compute the proportions for the ratings 
+            n_yes_highconfidence_s = 0; n_yes_maybe_s = 0; n_yes_lowconfidence_s = 0;
+            n_yes_highconfidence_s0 = 0; n_yes_maybe_s0 = 0; n_yes_lowconfidence_s0 = 0;
+            # We count the different possibilities 
+            for item in ratings_hat_Baseline : 
+                if (item > c_down) :
+                    n_yes_lowconfidence_s0 += 1
+                    if (item > c) :
+                        n_yes_maybe_s0 += 1
+                        if (item > c_up) :
+                            n_yes_highconfidence_s0 += 1
+                            
+            for item in ratings_hat_R : 
+                if (item > c_down) :
+                    n_yes_lowconfidence_s += 1
+                    if (item > c) :
+                        n_yes_maybe_s += 1
+                        if (item > c_up) :
+                            n_yes_highconfidence_s += 1
+                            
+            # We compute the probabilities 
+            stimulis_number_s = len(ratings_hat_R)
+            stimulis_number_s0 = len(ratings_hat_Baseline)
+            
+            p_yes_highconfidence_s = n_yes_highconfidence_s/stimulis_number_s
+            p_yes_maybe_s = n_yes_maybe_s/stimulis_number_s
+            p_yes_lowconfidence_s = n_yes_lowconfidence_s/stimulis_number_s
+            
+            p_yes_highconfidence_s0 = n_yes_highconfidence_s0/stimulis_number_s0
+            p_yes_maybe_s0 = n_yes_maybe_s0/stimulis_number_s0
+            p_yes_lowconfidence_s0 = n_yes_lowconfidence_s0/stimulis_number_s0
+            
+            # We construct the ROC Curves
+            p_yes_s0 = [0,p_yes_highconfidence_s0,p_yes_maybe_s0,p_yes_lowconfidence_s0,1]
+            p_yes_s = [0,p_yes_highconfidence_s,p_yes_maybe_s,p_yes_lowconfidence_s,1] 
+            
+            print (f'  Probabilities of s0 (Baseline) : {p_yes_s0}')
+            print (f'  Probabilities of s (Rating) : {p_yes_s} \n')
+            
+            plt.plot(p_yes_s0,p_yes_s, alpha = 0.8, label=f'{i}')
+          
     x = np.arange(0,1.1,0.1)
-    plt.plot(x,x, 'r--', label = 'Straight Line ')
-    plt.title(f'ROC Curves for different baseline stimulis')
-    plt.legend()
+    plt.plot(x,x,'r--', label = 'Straight Line')
+    plt.title(f'ROC Curves with the stimulis {baseline} as baseline')
     plt.grid()
+    plt.xlabel('P(r=yes, s0)')
+    plt.ylabel('P(r=yes, s)')
+    plt.legend()
     plt.show()
-    return 0 
+    return 0
 
-plot_ROC_Curves(ratings_true,ratings_hat)
+plot_ROC_Curves()
+
 print('    We plot the ROC Curve')
 
 def plot_histogram_estimated_ratings(ratings_true = ratings_true, ratings_hat = ratings_hat):
@@ -541,7 +580,7 @@ def plot_histogram_estimated_ratings(ratings_true = ratings_true, ratings_hat = 
 plot_histogram_estimated_ratings()
 print('    We plot the Histogram of the ratings')
 
-print('Part 9-3 : We plot the psychiometric funciton')
+print('Part 9-3 : We plot the psychometric funciton')
 
 # Psychometric Function
 criterion = 3.5;   # The 50%-Threshold of the proportion correct
@@ -550,15 +589,17 @@ criterion = 3.5;   # The 50%-Threshold of the proportion correct
 stimulus_intensity = ratings_hat
 correct_response = ratings_true
 
-correct_response = np.where(ratings_hat == ratings_true)[0]
+correct_res = np.where(ratings_hat == ratings_true)[0]
 
+correct_response = []
 proportion_correct = []
 res = 0 
 for i in range (1,8) : 
     temp = np.where(ratings_hat == i)[0]
-    temp = np.intersect1d(correct_response, temp)
+    temp = np.intersect1d(correct_res, temp)
     res += len(temp)
-    proportion_correct.append(res/len(correct_response))
+    proportion_correct.append(res/len(correct_res))
+    correct_response.append(res)
     
 intesity_mean = np.mean(stimulus_intensity)
 intensity_std = np.std(stimulus_intensity)
@@ -583,13 +624,50 @@ plt.grid()
 plt.show()
 
 
+print('    Optimization of our psychometric function')
 
+Ns = max(correct_response)
+criterion_x0 = 3.5;
+std_x0 = intensity_std
 
+#The function to optimize for the equation 1.11
+def negLogLikelihood(parameters) :
+  criterion = parameters[0]
+  std = parameters[1]
+  # The equation
+  psychometric_function = [ norm.cdf( (x-criterion)/std ) for x in stimulus_intensity ]
+  psychometric_function = np.unique(psychometric_function)
+  # Computation of the logLikelihood 
+  log_likelihood = []
+  for i in range (len(psychometric_function)) :
+    Ps = psychometric_function[i]
+    ns = correct_response[i] # To Check
+    sum01 = np.cumsum(np.log10(np.arange(1,Ns+1,1)))[-1]
+    sum02 = np.cumsum(np.log10(np.arange(1,ns+1,1)))[-1]
+    if (ns == Ns) : 
+      sum03 = 0
+    else : 
+      sum03 = np.cumsum(np.log10(np.arange(1,Ns-ns+1,1)))[-1]
+    temp = sum01 - sum02  - sum03 + ns*np.log10(Ps) + (Ns-ns)*np.log10(1-Ps)
+    log_likelihood.append(-1 * temp)
 
+  # Compute the total logLikelihood
+  total_log_likelihood = np.cumsum(log_likelihood)[-1]
+  return total_log_likelihood
 
+initial_parameters = [criterion_x0,std_x0];
+res_01 = minimize(negLogLikelihood, initial_parameters, method='nelder-mead',options={'xatol': 1e-8, 'disp': True})
+optimal_criterion = res_01.x
 
+print("The optimal criterion for the psychometric function is : ", optimal_criterion[0], 'and optimal std is ', optimal_criterion[1])
+psychometric_function_optimized = [ norm.cdf( (x-optimal_criterion[0])/optimal_criterion[1] ) for x in stimulus_intensity ]
 
-
-
-
+plt.plot(np.unique(stimulus_intensity), proportion_correct, label = 'True Value')
+plt.plot(np.unique(stimulus_intensity), np.unique(psychometric_function_optimized), label = 'Psychometric function')
+plt.xlabel('Stimulis Intensity (Ratings)')
+plt.ylabel('Proportion Correct')
+plt.title('Psychometric Function after Optimization')
+plt.legend()
+plt.grid()
+plt.show()
 
