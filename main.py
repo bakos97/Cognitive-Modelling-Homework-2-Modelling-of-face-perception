@@ -11,16 +11,9 @@ import xlsxwriter
 from sklearn import decomposition
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
+from sklearn import metrics 
 
-
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score as acc
-from mlxtend.feature_selection import SequentialFeatureSelector as sfs
-
-import seaborn as sns;
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from scipy.stats import norm
 
 ###----------------------------------
 #           Import Data 
@@ -154,6 +147,7 @@ def plotting_Reconstruction(model_Name,X,X_Reconstructed,n_image2plot,text) :
         f.suptitle(text, fontsize=16)
     return 0
 
+#%% 
 # Action of PCs - The effect of the PCs on the decomposition 
 def PCsAction(pc_number = 10) : 
     for i in range (1,pc_number) :
@@ -164,7 +158,9 @@ def PCsAction(pc_number = 10) :
         X_column = X_5[:,i-1]
         i_maxi = np.where(X_column == X_column.max())
         i_mini = np.where(X_column == X_column.min())
-        X_5 = model_PCA.inverse_transform(X_5)
+        b = np.zeros(np.shape(X_5))
+        b[:,i-1] = X_column
+        X_5 = model_PCA.inverse_transform(b)
         
         plt.figure()
         f, axarr = plt.subplots(2,2)
@@ -192,8 +188,8 @@ def PCsAction(pc_number = 10) :
     return 0
 
 see_PC_actions = True; dont_see_PC_action = False;
-if dont_see_PC_action : # If True, we plot the action of PCs otherwise we don't
-    PCsAction(10)
+if see_PC_actions : # If True, we plot the action of PCs otherwise we don't
+    PCsAction(5)
 
 #---------------------------------------
 # --       PCA decomposition 90%
@@ -203,7 +199,7 @@ searchOpt = False # True if we don't want to do it
 
 if not(searchOpt) :
     print('---------------------------------------------- ')
-    print('The search for optimal Component is turned off (we use a default parameters)')
+    print('The search for optimal Component is turned off (we use default parameters)')
     print('          Change the variable of searchOpt if we want to fo the search')
     opt_Components_90 = 60
     print(f'We need {opt_Components_90} components to get at least 90% of the explained variance')
@@ -235,7 +231,7 @@ else :
 
 ### PCA Decomposition 
 print('---------------------------------------------- ')
-print('Start the PCA decomposition')
+print(f'Start the PCA decomposition with {opt_Components_90} components')
 start = time.time()
 
 model_PCA = decomposition.PCA(n_components=opt_Components_90)
@@ -251,6 +247,7 @@ print('End PCA decomposition')
 #               6. Select a subset of revelant PCs
 ###--------------------------------------------------------------------
 
+
 from sklearn.feature_selection import SequentialFeatureSelector
 
 ### Feature Selection 
@@ -264,8 +261,8 @@ X_pca_selected = sfs.fit_transform(X_pca,y_train)
 
 selected_features = (sfs.get_support()*1).sum()
 index_of_chosen_PC = (np.argwhere((sfs.get_support()*1)>0.5)).reshape(-1) + 1
-print(f'    We selected {selected_features} features')
-print(f'    The index chosen are : {index_of_chosen_PC}')
+print(f'    We select {selected_features} features')
+print(f'    The index chosen by the selection are : {index_of_chosen_PC}')
 
 temps = round(time.time()-start,2)
 print(f'        Total time : {temps}s')
@@ -297,7 +294,7 @@ print('Part 8-1 : We generate some synthetic pictures')
 def synthetic_faces(x_synthetic, x_initial) : 
     n = len(x_synthetic)
     plt.figure()
-    f, axarr = plt.subplots(n,2, figsize = (16,50))
+    f, axarr = plt.subplots(n,2, figsize = (2,8))
     for i in range (n) : 
         img_initial = ((x_initial[i].reshape(200,200))*(X_max-X_min)) + X_min
         img_reconstructed = ((x_synthetic[i].reshape(200,200))*(X_max-X_min)) + X_min   
@@ -371,7 +368,7 @@ np.random.shuffle(c)
 images_shuffled, ratings_images_shuffled = zip(*c)
 
 # Turn it on True if you want to rate yourself a random sub-dataset 
-do_Ratings_Q9 = True 
+do_Ratings_Q9 = False 
 
 if do_Ratings_Q9 :
     name = input('What is your name ?   ' )
@@ -442,56 +439,148 @@ if do_Ratings_Q9 :
 
 print('Part 9-2 : We analyze the data from the second experiment')
 
-filenames = ['./records/michel_ratings.xlsx', './records/arthur_ratings.xlsx']
+filenames = ['./records/michel_ratings.xlsx', './records/arthur_ratings.xlsx', './records/christian_ratings.xlsx' , './records/dominik_ratings.xlsx']
 
-ratings_hat = []; rating_true = [];
+ratings_hat_list = []; rating_true_list = [];
 
 # We extract all data we need from the excel files
 for file in filenames :
     dataframe = pd.read_excel(file)
-    ratings_hat.append(dataframe['Rating'].values)
-    rating_true.append(dataframe['True_Rating'].values)
-    
-ratings_hat = (np.array(ratings_hat)).reshape(-1)
-gender_hat = []
-for x in ratings_hat : 
-    # 0 = male and 1 = female 
-    if (x > 4) : 
-        gender_hat.append(1)
-    if (x < 4) : 
-        gender_hat.append(0)
-gender_hat = np.array(gender_hat)
+    ratings_hat_list.append(dataframe['Rating'].values)
+    rating_true_list.append(dataframe['True_Rating'].values)
+  
+ratings_hat = []; ratings_true = [];    
+for x in ratings_hat_list : 
+    for item in x : 
+        ratings_hat.append(item)
+ratings_hat = np.array(ratings_hat)
         
-rating_true = (np.array(rating_true)).reshape(-1)
-gender_true = []
-for x in rating_true : 
-    # 0 = male and 1 = female 
-    if (x > 4) : 
-        gender_true.append(1)
-    if (x < 4) : 
-        gender_true.append(0)
-gender_true = np.array(gender_true)
+for x in rating_true_list : 
+    for item in x : 
+        ratings_true.append(item)
+ratings_true = np.array(ratings_true)
 
-assert np.shape(gender_true) == np.shape(gender_hat), f'The shape doesnt coincide {np.shape(gender_true)} and {np.shape(gender_hat)}'
+def plot_ROC_Curves (ratings_true=ratings_true, ratings_hat=ratings_hat) :
+    for i in range (1,8) :
+        baseline = i 
+        # Estimation Ratings List
+        list_hat = []
+        for x in ratings_hat : 
+            # 0 = male and 1 = female 
+            if (x == baseline) : 
+                list_hat.append(1)
+            else : 
+                list_hat.append(0)
+        list_hat = np.array(list_hat)
+        
+        # True Ratings List
+        list_true = []
+        for x in ratings_true : 
+            # 0 = male and 1 = female 
+            if (x == baseline) : 
+                list_true.append(1)
+            else : 
+                list_true.append(0)
+        list_true = np.array(list_true)
+        
+        ## Plottings stuff
+        fpr, tpr, thresholds = metrics.roc_curve(list_hat,list_true)
+        
+        plt.plot(fpr,tpr, label = f'Baseline {i}')
 
-# ROC Curve
-# We build the ROC curve
-from sklearn import metrics 
-fpr, tpr, thresholds = metrics.roc_curve(gender_true,gender_hat)
+    x = np.arange(0,1.1,0.1)
+    plt.plot(x,x, 'r--', label = 'Straight Line ')
+    plt.title(f'ROC Curves for different baseline stimulis')
+    plt.legend()
+    plt.grid()
+    plt.show()
+    return 0 
 
-x = np.arange(0,1.1,0.1)
-plt.plot(fpr,tpr, label = 'ROC Curve')
-plt.plot(x,x, 'r--', label = 'y=x')
-plt.title('ROC Curve')
-plt.legend()
-plt.grid()
-plt.show()
+plot_ROC_Curves(ratings_true,ratings_hat)
+print('    We plot the ROC Curve')
 
+def plot_histogram_estimated_ratings(ratings_true = ratings_true, ratings_hat = ratings_hat):
+    index_R1 = np.where(ratings_true == 1)
+    ratings_true_R1 = ratings_true[index_R1[0]]
+    ratings_hat_R1 = ratings_hat[index_R1[0]]
+    
+    index_R2 = np.where(ratings_true == 2)
+    ratings_true_R2 = ratings_true[index_R2[0]]
+    ratings_hat_R2 = ratings_hat[index_R2[0]]
+    
+    index_R3  = np.where(ratings_true == 3)
+    ratings_true_R3 = ratings_true[index_R3[0]]
+    ratings_hat_R3 = ratings_hat[index_R3[0]]
+    
+    index_R4 = np.where(ratings_true == 4)
+    ratings_true_R4 = ratings_true[index_R4[0]]
+    ratings_hat_R4 = ratings_hat[index_R4[0]]
+    
+    index_R5 = np.where(ratings_true == 5)
+    ratings_true_R5 = ratings_true[index_R5[0]]
+    ratings_hat_R5 = ratings_hat[index_R5[0]]
+    
+    index_R6 = np.where(ratings_true == 6)
+    ratings_true_R6 = ratings_true[index_R6[0]]
+    ratings_hat_R6 = ratings_hat[index_R6[0]]
+    
+    index_R7 = np.where(ratings_true == 7)
+    ratings_true_R7 = ratings_true[index_R7[0]]
+    ratings_hat_R7 = ratings_hat[index_R7[0]]
 
+    plt.hist([ratings_hat_R1, ratings_hat_R2, ratings_hat_R3, ratings_hat_R4, ratings_hat_R5, ratings_hat_R6, ratings_hat_R7], alpha = 0.8, label = ['1','2','3','4','5','6','7'])
+    plt.legend()
+    plt.grid()
+    plt.xlabel('Ratings')
+    plt.ylabel('Frequency')
+    plt.title("Histogram of estimated ratings")
+    plt.show()
+    
+    return 0
+
+plot_histogram_estimated_ratings()
+print('    We plot the Histogram of the ratings')
+
+print('Part 9-3 : We plot the psychiometric funciton')
 
 # Psychometric Function
+criterion = 3.5;   # The 50%-Threshold of the proportion correct
 
+# The data
+stimulus_intensity = ratings_hat
+correct_response = ratings_true
 
+correct_response = np.where(ratings_hat == ratings_true)[0]
+
+proportion_correct = []
+res = 0 
+for i in range (1,8) : 
+    temp = np.where(ratings_hat == i)[0]
+    temp = np.intersect1d(correct_response, temp)
+    res += len(temp)
+    proportion_correct.append(res/len(correct_response))
+    
+intesity_mean = np.mean(stimulus_intensity)
+intensity_std = np.std(stimulus_intensity)
+
+print(f'    The stimulus mean is {intesity_mean} and the std is {intensity_std}')
+
+# We compute the value with the standard normal cumulative distribution function
+psychometric_function = [ norm.cdf( (x-criterion)/intensity_std ) for x in stimulus_intensity ]
+
+a = list(zip(stimulus_intensity,psychometric_function))
+a.sort()
+stimulus_intensity, psychometric_function = zip(*a)
+
+plt.plot(np.unique(stimulus_intensity), proportion_correct, label = 'True Value')
+plt.plot(stimulus_intensity, psychometric_function, label = 'Psychmetric Function')
+plt.xlabel('Stimulis Intensity (Ratings)')
+plt.ylabel('Proportion Correct')
+plt.title('Psychometric Function before Optimization')
+plt.legend()
+plt.ylim(0,1)
+plt.grid()
+plt.show()
 
 
 
