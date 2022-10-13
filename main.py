@@ -426,11 +426,15 @@ if do_Ratings_Q9 :
             worksheet.write(row, 0 , 'Image_Index')
             worksheet.write(row, 1 , 'Rating')
             worksheet.write(row, 2 , 'True_Rating')
+            # Fill excel with the first element, Add first element 
+            worksheet.write(row+1, 0 , item[0]) # The index of the picture
+            worksheet.write(row+1, 1 , item[1]) # The rating we gave
+            worksheet.write(row+1, 2 , item[2]) # The true rating of the picture
         else :
             # We fill with the data
-            worksheet.write(row, 0 , item[0]) # The index of the picture
-            worksheet.write(row, 1 , item[1]) # The rating we gave
-            worksheet.write(row, 2 , item[2]) # The true rating of the picture
+            worksheet.write(row+1, 0 , item[0]) # The index of the picture
+            worksheet.write(row+1, 1 , item[1]) # The rating we gave
+            worksheet.write(row+1, 2 , item[2]) # The true rating of the picture
         row += 1
     workbook.close()
     
@@ -438,7 +442,7 @@ if do_Ratings_Q9 :
 
 print('Part 9-2 : We analyze the data from the second experiment')
 
-filenames = ['Michel_ratings.xlsx']
+filenames = ['./records/michel_ratings.xlsx', './records/arthur_ratings.xlsx']
 
 ratings_hat = []; rating_true = [];
 
@@ -447,12 +451,43 @@ for file in filenames :
     dataframe = pd.read_excel(file)
     ratings_hat.append(dataframe['Rating'].values)
     rating_true.append(dataframe['True_Rating'].values)
+    
 ratings_hat = (np.array(ratings_hat)).reshape(-1)
+gender_hat = []
+for x in ratings_hat : 
+    # 0 = male and 1 = female 
+    if (x > 4) : 
+        gender_hat.append(1)
+    if (x < 4) : 
+        gender_hat.append(0)
+gender_hat = np.array(gender_hat)
+        
 rating_true = (np.array(rating_true)).reshape(-1)
+gender_true = []
+for x in rating_true : 
+    # 0 = male and 1 = female 
+    if (x > 4) : 
+        gender_true.append(1)
+    if (x < 4) : 
+        gender_true.append(0)
+gender_true = np.array(gender_true)
 
+assert np.shape(gender_true) == np.shape(gender_hat), f'The shape doesnt coincide {np.shape(gender_true)} and {np.shape(gender_hat)}'
 
 # ROC Curve
-from sklearn.metrics import roc_curve
+# We build the ROC curve
+from sklearn import metrics 
+fpr, tpr, thresholds = metrics.roc_curve(gender_true,gender_hat)
+
+x = np.arange(0,1.1,0.1)
+plt.plot(fpr,tpr, label = 'ROC Curve')
+plt.plot(x,x, 'r--', label = 'y=x')
+plt.title('ROC Curve')
+plt.legend()
+plt.grid()
+plt.show()
+
+
 
 # Psychometric Function
 
